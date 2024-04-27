@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: it-tools
+  labels:
+    app: it-tools
+  annotations:
+    kubesailEditorUid: 7c739a5e-71de-40a4-b96e-f4ba4aef37b5
+    
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: it-tools
+  template:
+    metadata:
+      labels:
+        app: it-tools
+    spec:
+      containers:
+        - name: it-tools
+          image: corentinth/it-tools:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: it-tools
+  labels:
+    app: it-tools
+  annotations:
+    kubesailEditorUid: 9fd8ddde-a5a2-4188-b446-27b0f3bfe6dc
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-body-size: 500m
+    nginx.org/websocket-services: it-tools
+    kubernetes.io/tls-acme: "true"
+spec:
+  tls:
+    - hosts:
+        - it-tools.{{ CLUSTER_ADDRESS }}
+        - it-tools.{{ LOCAL_CLUSTER_ADDRESS }}
+  rules:
+    - host: it-tools.{{ CLUSTER_ADDRESS }}
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            backend:
+              service:
+                name: it-tools
+                port:
+                  name: http
+    - host: it-tools.{{ LOCAL_CLUSTER_ADDRESS }}
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            backend:
+              service:
+                name: it-tools
+                port:
+                  name: http
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: it-tools
+  labels:
+    app: it-tools
+  annotations:
+    kubesailEditorUid: 8f5fa438-24d7-435a-89ee-df5b741d377b
+    
+spec:
+  selector:
+    app: it-tools
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: http
+
